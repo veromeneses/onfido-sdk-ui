@@ -14,25 +14,31 @@ import { functionalSwitch, impurify } from '../utils'
 import { canvasToBase64Images } from '../utils/canvas.js'
 import { fileToBase64, isOfFileType, fileToLossyBase64Image } from '../utils/file.js'
 
-export const FrontDocumentCapture = options =>
-  <Capture method='document' side='front' autoCapture={true} {...options} />
+export const FrontDocumentCapture = options => {
+  return <Capture autoCapture={true} {...options} />
+}
 
 FrontDocumentCapture.defaultProps = {
-  useWebcam: false
+  useWebcam: false,
+  method: 'document',
+  side: 'front'
 }
 
 export const BackDocumentCapture = options =>
-  <Capture method='document' side='back' autoCapture={true} {...options} />
+  <Capture autoCapture={true} {...options} />
 
 BackDocumentCapture.defaultProps = {
-  useWebcam: false
+  useWebcam: false,
+  method: 'document',
+  side: 'back'
 }
 
 export const FaceCapture = options =>
-  <Capture method='face' autoCapture={false} {...options} />
+  <Capture autoCapture={false} {...options} />
 
 FaceCapture.defaultProps = {
-  useWebcam: true
+  useWebcam: true,
+  method: 'face'
 }
 
 class Capture extends Component {
@@ -44,6 +50,7 @@ class Capture extends Component {
       DetectRTCLoading: true,
       uploadFallback: false
     }
+    this.setCurrentCapture(props)
   }
 
   componentDidMount () {
@@ -55,13 +62,22 @@ class Capture extends Component {
     this.setState({uploadFallback: false})
   }
 
-  componentWillReceiveProps({validCapture, method, side, hasUnprocessedCaptures}) {
-    if (validCapture(method, side)){
+  componentWillReceiveProps(nextProps) {
+    const {validCapture, method, side, hasUnprocessedCaptures} = nextProps
+    if (method !== this.props.method || side !== this.props.side) {
+      this.setCurrentCapture(nextProps)
+    }
+    if (validCapture) {
       this.setState({uploadFallback: false})
     }
     if (hasUnprocessedCaptures[method]){
       this.setState({fileError: false})
     }
+  }
+
+  setCurrentCapture ({actions, method, side}) {
+    side = side ? side : null
+    actions.setCurrentCapture({method, side})
   }
 
   checkWebcamSupport () {
@@ -199,13 +215,13 @@ class Capture extends Component {
     const {fileError} = this.state
     if (fileError === 'INVALID_TYPE')     return fileError
     if (fileError === 'INVALID_CAPTURE')  return fileError
-    if (allInvalid(method, side))         return "INVALID_CAPTURE"
+    if (allInvalid) return "INVALID_CAPTURE"
     return null;
   }
 
   render ({method, side, validCapture, allInvalid, useWebcam, hasUnprocessedCaptures, ...other}) {
     const useCapture = (!this.state.uploadFallback && useWebcam && this.supportsWebcam() && isDesktop)
-    const hasCaptured = validCapture(method, side)
+    const hasCaptured = validCapture
     return (
       <CaptureScreen {...{method, side, useCapture, hasCaptured,
         onUserMedia: this.onUserMedia,
