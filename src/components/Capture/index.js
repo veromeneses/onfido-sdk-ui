@@ -134,9 +134,13 @@ class Capture extends Component {
       console.warn('Server response is slow, waiting for responses before uploading more')
       return
     }
-
     payload = {...payload, documentType}
-    socket.sendMessage(this.createSocketPayload(payload))
+    if (this.props.side === 'back') {
+      payload = {...payload, valid: true}
+    }
+    else {
+      socket.sendMessage(this.createSocketPayload(payload))
+    }
     this.createCapture(payload)
   }
 
